@@ -1,6 +1,7 @@
 import type { LoaderFunction } from '@remix-run/node';
-import { json } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { defer } from '@remix-run/node';
+import { Await, useLoaderData } from '@remix-run/react';
+import { Suspense } from 'react';
 
 function getComments(): Promise<string[]> {
   return new Promise((resolve) =>
@@ -11,9 +12,9 @@ function getComments(): Promise<string[]> {
 }
 
 export const loader: LoaderFunction = async () => {
-  const comments = await getComments();
+  const comments = getComments();
 
-  return json({
+  return defer({
     comments,
   });
 };
@@ -29,9 +30,15 @@ export default function Index() {
         <div>
           <div>
             <p>评论</p>
-            {comments.map((comment) => {
-              return <p key={comment}>{comment}</p>;
-            })}
+            <Suspense fallback={<div>Loading...</div>}>
+              <Await<string[]> resolve={comments}>
+                {(comments) => {
+                  return comments.map((comment) => {
+                    return <p key={comment}>{comment}</p>;
+                  });
+                }}
+              </Await>
+            </Suspense>
           </div>
         </div>
       </div>
